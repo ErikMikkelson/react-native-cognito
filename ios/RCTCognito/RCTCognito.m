@@ -35,25 +35,38 @@ RCT_EXPORT_MODULE();
     return ((CaseBlock)regions[region])();
 }
 AWSCognitoCredentialsProvider *credentialsProvider;
+AWSServiceConfiguration *configuration;
+NSString *identityPoolIdGlobal;
+NSString *facebookToken;
 RCT_EXPORT_METHOD(initCredentialsProvider: (NSString *)identityPoolId
                   : (NSString *)token
                   : (NSString *)region
                   ) {
+
+    NSDictionary *logins =@{
+                            @(AWSCognitoLoginProviderKeyFacebook) : token
+                            };
+
     credentialsProvider =
+
     [[AWSCognitoCredentialsProvider alloc]
+   /*  initWithRegionType:AWSRegionUSEast1 identityId:@"us-east-1:7d2ef4a9-6b0d-45e6-b0bd-68a147d337cd" accountId:@"614907439071" identityPoolId:identityPoolId unauthRoleArn:@"arn:aws:iam::614907439071:role/Cognito_NewCognitoAuth_Role"  authRoleArn:@"arn:aws:iam::614907439071:role/Cognito_NewCognitoUnauth_Role" logins:logins
+     ];*/
      initWithRegionType:[self getRegionFromString:region]
-     identityPoolId:identityPoolId];
+     identityPoolId:identityPoolId
+    ];
 
-    credentialsProvider.logins = @{
-                                   @(AWSCognitoLoginProviderKeyFacebook) : token
-                                   };
+    credentialsProvider.logins = logins;
 
-    AWSServiceConfiguration *configuration = [[AWSServiceConfiguration alloc]
+    facebookToken = token;
+    identityPoolIdGlobal = identityPoolId;
+     configuration = [[AWSServiceConfiguration alloc]
                                               initWithRegion:[self getRegionFromString:region]
                                               credentialsProvider:credentialsProvider];
 
-    [AWSServiceManager defaultServiceManager].defaultServiceConfiguration =
-    configuration;
+
+   // [AWSServiceManager defaultServiceManager].defaultServiceConfiguration =
+    //configuration;
 
 }
 
@@ -62,21 +75,136 @@ RCT_REMAP_METHOD(getCognitoId,
                  resolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject)
 {
-    if(credentialsProvider.identityId == Nil){
+
+
+
+
+    /*
+    [[credentialsProvider refresh] continueWithBlock:^id(AWSTask * task) {
+        NSLog(@"***** Credentials *******", credentialsProvider);
+        resolve(credentialsProvider);
+        return nil;
+
+    }];
+     */
+
+
+
+     [[credentialsProvider getIdentityId] continueWithBlock:^id(AWSTask *task) {
+
+         AWSCognitoIdentityGetOpenIdTokenInput *getTokenInput = [AWSCognitoIdentityGetOpenIdTokenInput alloc];
+
+         getTokenInput.identityId = task.result;
+         getTokenInput.logins = credentialsProvider.logins;
+
+
+
+         AWSCognitoIdentity *identityObj = [AWSCognitoIdentity alloc];
+
+
+         [[identityObj getOpenIdToken:getTokenInput] continueWithBlock:^id (AWSTask<AWSCognitoIdentityGetCredentialsForIdentityResponse *> *  task2) {
+             NSLog(@"***** Credentials *******", task2.result.credentials);
+             resolve(task2.result.credentials);
+             return nil;
+
+         }];
+
+
+         /*
+
+
+     AWSCognitoIdentityGetCredentialsForIdentityInput *getTokenInput = [AWSCognitoIdentityGetCredentialsForIdentityInput alloc];
+
+     getTokenInput.identityId = task.result;
+     getTokenInput.logins = credentialsProvider.logins;
+
+
+
+     AWSCognitoIdentity *identityObj = [[AWSCognitoIdentity alloc]
+                                        initWithConfiguration: configuration];
+     [[identityObj getCredentialsForIdentity:getTokenInput] continueWithBlock:^id (AWSTask<AWSCognitoIdentityGetCredentialsForIdentityResponse *> *  task2) {
+         NSLog(@"***** Credentials *******", task2.result.credentials);
+         resolve(task2.result.credentials);
+         return nil;
+
+      }];
+          */
+         return nil;
+    }];
+
+
+    /*
 
     [[credentialsProvider getIdentityId] continueWithBlock:^id(AWSTask *task) {
         if (task.error) {
             reject(@"Error", @"Failed to get CognitoId", task.error);
         }
         else {
-            resolve(task.result);
+
+
+
+
+
+            AWSCognitoCredentialsProvider *BasicCredentialsProvider =
+            [[AWSCognitoCredentialsProvider alloc]
+
+             initWithRegionType:configuration.regionType identityId:task.result accountId:@"614907439071" identityPoolId:identityPoolIdGlobal unauthRoleArn:@"arn:aws:iam::614907439071:role/Cognito_NewCognitoAuth_Role"  authRoleArn:@"arn:aws:iam::614907439071:role/Cognito_NewCognitoUnauth_Role" logins:credentialsProvider.logins
+             ];
+
+
+            [[BasicCredentialsProvider refresh] continueWithBlock:^id(AWSTask * task) {
+                NSLog(@"***** Credentials *******", BasicCredentialsProvider);
+                return nil;
+                resolve(BasicCredentialsProvider);
+            }];
+
+
+
+
+
         }
         return nil;
     }];
-    }
-    else{
-        resolve(credentialsProvider.identityId);
-    }
+     */
+
+
+
+    /*
+
+    AWSCognitoIdentity *identity = [[AWSCognitoIdentity alloc]
+                                    initWithConfiguration:BasicCredentialsProvider];
+
+
+    AWSCognitoIdentityGetCredentialsForIdentityInput *input = [AWSCognitoIdentityGetCredentialsForIdentityInput alloc];
+
+    input.identityId = credentialsProvider.identityId;
+
+
+    input.logins = credentialsProvider.logins;
+
+
+
+    [[identity getCredentialsForIdentity:input] continueWithBlock:^id (AWSTask<AWSCognitoIdentityGetCredentialsForIdentityResponse *> * task) {
+        NSLog(@"****AWS Identity Credentials ", task.result.credentials);
+        resolve(task.result.credentials);
+        return nil;
+    }];
+    */
+
+
+        /*
+
+
+        AWSCognitoIdentityGetOpenIdTokenInput *getTokenInput = [AWSCognitoIdentityGetOpenIdTokenInput alloc];
+    getTokenInput.identityId = credentialsProvider.identityId;
+    getTokenInput.logins = credentialsProvider.logins;
+
+
+
+
+
+
+    */
 }
 
 
