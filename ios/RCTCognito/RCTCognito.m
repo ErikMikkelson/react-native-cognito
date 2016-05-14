@@ -79,11 +79,8 @@ RCT_REMAP_METHOD(UploadFileToS3,
     
     
     uploadRequest.uploadProgress =  ^(int64_t bytesSent, int64_t totalBytesSent, int64_t totalBytesExpectedToSend){
-        
-          double progress = (totalBytesSent * 100) / totalBytesExpectedToSend;
-          double progressNormalized = fmod(progress, 10);
-          if(progressNormalized == 0)
-             [self.bridge.eventDispatcher sendAppEventWithName:@"s3ProgressChanged" body: @{ @"progress": [NSNumber numberWithDouble:progress], @"key": key}];
+          float progress = (float) totalBytesSent / totalBytesExpectedToSend;
+         [self.bridge.eventDispatcher sendAppEventWithName:@"s3ProgressChanged" body: @{ @"progress": [NSNumber numberWithFloat:progress], @"key": key}];
     };
     
     [[transferManager upload:uploadRequest] continueWithBlock:^id
