@@ -12,6 +12,9 @@
 #import <AWSCognito/AWSCognito.h>
 #import <AWSCore/AWSCore.h>
 #import <AWSS3/AWSS3.h>
+#import "RCTEventDispatcher.h"
+#import <tgmath.h>
+#import <math.h>
 typedef AWSRegionType (^CaseBlock)();
 
 @implementation RCTCognito
@@ -59,7 +62,7 @@ RCT_REMAP_METHOD(UploadFileToS3,
                       : (NSString*) fileUrl
                       : (NSString*) contentType
                       : (NSString*) bucket
-                      : (NSString*) key
+                      : (NSString*) key                      
                  resolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject)
 
@@ -71,6 +74,18 @@ RCT_REMAP_METHOD(UploadFileToS3,
     uploadRequest.body = url;
     uploadRequest.contentType = contentType;
     AWSS3TransferManager *transferManager = [AWSS3TransferManager defaultS3TransferManager];
+    
+    
+    
+    
+    uploadRequest.uploadProgress =  ^(int64_t bytesSent, int64_t totalBytesSent, int64_t totalBytesExpectedToSend){
+        
+          double progress = (totalBytesSent * 100) / totalBytesExpectedToSend;
+          double progressNormalized = fmod(progress, 10);
+          if(progressNormalized == 0)
+             [self.bridge.eventDispatcher sendAppEventWithName:@"s3ProgressChanged" body: @{ @"progress": [NSNumber numberWithDouble:progress], @"key": key}];
+    };
+    
     [[transferManager upload:uploadRequest] continueWithBlock:^id
                                                        (AWSTask *task) {
                                                            if (task.error) {
@@ -100,6 +115,7 @@ RCT_REMAP_METHOD(UploadFileToS3,
                                                            }
                                                            return nil;
                                                        }];
+    
 
 }
 
