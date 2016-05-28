@@ -9,7 +9,6 @@ Pod::Spec.new do |s|
   s.homepage     = 'https://github.com/SunnyGurnani/react-native-cognito'
   s.source       = { :git => "https://github.com/SunnyGurnani/react-native-cognito.git" }
   s.platform     = :ios, "7.0"
-  s.dependency 'React'
 
   s.subspec 'RCTCognito' do |ss|
     ss.source_files     = "RCTCognito/*.{h,m}"
